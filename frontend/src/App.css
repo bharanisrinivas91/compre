@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap');
+
+:root {
+  --primary-glow: #00d1ff;
+  --secondary-glow: #00ffc8;
+  --background-dark: #121212;
+  --background-light: #1e1e1e;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --border-color: #333;
+}
+
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-dark);
+  color: var(--text-primary);
+}
+
+.App {
+  width: 90%;
+  max-width: 1200px;
+  margin: 40px auto;
+  text-align: center;
+}
+
+.header {
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 3rem;
+  color: var(--primary-glow);
+  text-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+.header p {
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+  margin-top: 10px;
+}
+
+.error-message {
+  margin-top: 20px;
+  font-size: 1.2rem;
+  color: #ff4d4d;
+}
+
+.report-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  text-align: left;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.report-card {
+  background-color: var(--background-light);
+  padding: 25px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.report-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2), 0 0 10px rgba(0, 209, 255, 0.2);
+}
+
+.recommendation-card {
+  text-align: center;
+}
+
+.card-title {
+  font-family: 'Orbitron', sans-serif;
+  color: var(--primary-glow);
+  border-bottom: 2px solid var(--primary-glow);
+  padding-bottom: 10px;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.recommendation-text {
+  font-size: 1.8rem;
+  font-weight: bold;
+  padding: 20px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.recommendation-procure {
+  color: #fff;
+  background: linear-gradient(45deg, #00b33c, #00e64d);
+  box-shadow: 0 0 20px rgba(0, 230, 77, 0.6);
+}
+
+.recommendation-wait {
+  color: #fff;
+  background: linear-gradient(45deg, #ff8c00, #ffae42);
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.6);
+}
+
+.news-list {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.news-list li {
+  background-color: #2a2a2a;
+  padding: 12px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--primary-glow);
+  transition: background-color 0.3s ease;
+}
+
+.news-list li:hover {
+  background-color: #333;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading Spinner */
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  font-size: 1.2rem;
+  margin-top: 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #333;
+  border-top: 4px solid var(--primary-glow);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Horizontal Scroll Menu */
+.commodity-selector-container {
+  margin-bottom: 40px;
+}
+
+.commodity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 100px;
+  background-color: var(--background-light);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  margin: 0 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+  gap: 8px;
+}
+
+.commodity-card.selected {
+  border-color: var(--primary-glow);
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.commodity-card:hover {
+  border-color: var(--primary-glow);
+  transform: translateY(-2px);
+}
+
+.commodity-icon {
+  font-size: 2.5rem;
+  color: var(--primary-glow);
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.arrow:hover {
+  color: var(--primary-glow);
+}
+
+.arrow.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Collapsible Card */
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.collapsible-content {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.5s ease-out, padding 0.5s ease-out;
+  padding: 0 25px;
+}
+
+.collapsible-content.open {
+  max-height: 1000px; /* Adjust as needed */
+  padding: 25px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 15px;
+}

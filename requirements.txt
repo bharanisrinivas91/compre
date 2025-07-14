@@ -1,0 +1,9 @@
+langchain
+langchain-groq
+langgraph
+yfinance
+pandas
+python-dotenv
+eventregistry
+fastapi
+uvicorn[standard]
