@@ -7,3 +7,5 @@ python-dotenv
 eventregistry
 fastapi
 uvicorn[standard]
+statsmodels
+scikit-learn

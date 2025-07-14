@@ -1,11 +1,13 @@
 import pandas as pd
 from typing import TypedDict
+from datetime import datetime, timedelta
 from langgraph.graph import StateGraph, END
 from src.agents import (
     fetch_commodity_data,
     research_commodity,
     make_procurement_decision,
-    fetch_recent_news
+    fetch_recent_news,
+    forecast_prices
 )
 
 # Define the state for our graph
@@ -13,6 +15,7 @@ class AgentState(TypedDict):
     commodity: str
     ticker: str
     data: pd.DataFrame
+    price_forecast: pd.DataFrame
     research_summary: str
     news_headlines: str
     decision: str
@@ -24,6 +27,11 @@ def data_fetcher_node(state: AgentState) -> AgentState:
     print("---NODE: DATA FETCHER---")
     data = fetch_commodity_data(state['ticker'])
     return {"data": data}
+
+def forecasting_node(state: AgentState) -> AgentState:
+    print("---NODE: FORECASTING AGENT---")
+    forecast = forecast_prices(state['data'])
+    return {"price_forecast": forecast}
 
 def research_agent_node(state: AgentState) -> AgentState:
     print("---NODE: RESEARCH AGENT---")
@@ -47,35 +55,69 @@ def decision_agent_node(state: AgentState) -> AgentState:
 
 def final_output_node(state: AgentState) -> AgentState:
     print("---NODE: FINAL OUTPUT---")
-    # Format price data into a more API-friendly list of objects
-    price_data = state['data'].tail(5).reset_index()
-    # First, find and format the date column to a string
-    date_col_name = None
-    if 'index' in price_data.columns and pd.api.types.is_datetime64_any_dtype(price_data['index']):
-        date_col_name = 'index'
-        price_data.rename(columns={'index': 'Date'}, inplace=True)
-        price_data['Date'] = price_data['Date'].dt.strftime('%Y-%m-%d')
-    elif 'Date' in price_data.columns and pd.api.types.is_datetime64_any_dtype(price_data['Date']):
-        date_col_name = 'Date'
-        price_data['Date'] = price_data['Date'].dt.strftime('%Y-%m-%d')
 
-    # Now, convert all numeric columns to standard Python floats
-    numeric_cols = price_data.select_dtypes(include=['number']).columns
-    for col in numeric_cols:
-        price_data[col] = price_data[col].astype(float).round(4)
+    try:
+        # 1. Format historical price data
+        historical_data = state['data'].copy()
+        print(f"Historical data columns: {historical_data.columns.tolist()}")
+        
+        # Handle missing columns
+        if 'Close' not in historical_data.columns and 'Adj Close' in historical_data.columns:
+            historical_data['Close'] = historical_data['Adj Close']
+        
+        # Ensure Date is a column, not an index
+        if 'Date' not in historical_data.columns and historical_data.index.name == 'Date':
+            historical_data = historical_data.reset_index()
+        
+        # Create a simplified version with just Date and Close
+        simple_historical = historical_data[['Date', 'Close']].copy()
+        
+        # Convert dates to strings
+        simple_historical['Date'] = pd.to_datetime(simple_historical['Date']).dt.strftime('%Y-%m-%d')
+        
+        # Convert to records
+        historical_data_json = simple_historical.to_dict(orient='records')
+        
+        # 2. Handle forecast data
+        forecast_data = state['price_forecast']
+        
+        # If forecast data is empty, create a placeholder
+        if forecast_data.empty:
+            print("Warning: Empty forecast data. Creating placeholder.")
+            last_date = pd.to_datetime(historical_data['Date'].iloc[-1])
+            last_price = historical_data['Close'].iloc[-1]
+            
+            # Create dummy forecast data (flat line)
+            dates = [(last_date + timedelta(days=i+1)).strftime('%Y-%m-%d') for i in range(60)]
+            forecast_data_json = [{
+                'Date': d,
+                'Forecast': last_price,
+                'Lower_CI': last_price * 0.9,
+                'Upper_CI': last_price * 1.1
+            } for d in dates]
+        else:
+            # Use the forecast data as is
+            print(f"Forecast data columns: {forecast_data.columns.tolist()}")
+            forecast_data_json = forecast_data.to_dict(orient='records')
+    
+    except Exception as e:
+        print(f"Error in final output node: {e}")
+        # Create empty placeholders if anything fails
+        historical_data_json = []
+        forecast_data_json = []
 
-    price_data_json = price_data.to_dict(orient='records')
-
-    # Clean up news headlines into a clean list of strings
+    # 3. Clean up news headlines
     raw_headlines = state['news_headlines'].strip().split('\n')
     headlines_list = [line.strip() for line in raw_headlines if line.strip() and not line.strip().startswith('---')]
 
+    # 4. Assemble the final report
     report = {
         "commodity": state['commodity'].title(),
         "recommendation_summary": state['decision'],
         "qualitative_research": state['research_summary'],
         "recent_news": headlines_list,
-        "recent_price_data": price_data_json
+        "historical_prices": historical_data_json,
+        "forecasted_prices": forecast_data_json
     }
     return {"report": report}
 
@@ -83,16 +125,23 @@ def final_output_node(state: AgentState) -> AgentState:
 workflow = StateGraph(AgentState)
 
 workflow.add_node("data_fetcher", data_fetcher_node)
+workflow.add_node("forecasting_node", forecasting_node)
 workflow.add_node("research_agent", research_agent_node)
 workflow.add_node("news_fetcher", news_fetcher_node)
 workflow.add_node("decision_agent", decision_agent_node)
 workflow.add_node("final_output", final_output_node)
 
 workflow.set_entry_point("data_fetcher")
-workflow.add_edge("data_fetcher", "research_agent")
-workflow.add_edge("data_fetcher", "news_fetcher")
+workflow.add_edge("data_fetcher", "forecasting_node")
+
+# The decision agent depends on research and news, which can run in parallel
+workflow.add_edge("forecasting_node", "research_agent")
+workflow.add_edge("forecasting_node", "news_fetcher")
+
+# Both research and news feed into the decision agent
 workflow.add_edge("research_agent", "decision_agent")
 workflow.add_edge("news_fetcher", "decision_agent")
+
 workflow.add_edge("decision_agent", "final_output")
 workflow.add_edge("final_output", END)
 
