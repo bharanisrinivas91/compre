@@ -39,14 +39,56 @@ const PriceChart = ({ historical, forecast }) => {
     return <div className="chart-error">Invalid forecast data format</div>;
   }
 
-  // Combine historical and the last point of historical data to connect the lines
+  // Format dates consistently
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
+  // Combine historical and forecast data for the chart
+  const chartData = [
+    ...historical.map(item => ({
+      ...item,
+      Date: new Date(item.Date),
+      type: 'historical'
+    })),
+    ...forecast.map(item => ({
+      ...item,
+      Date: new Date(item.Date),
+      type: 'forecast'
+    }))
+  ].sort((a, b) => a.Date - b.Date);
+  
+  // Get the last historical point to connect the lines
   const lastHistoricalPoint = historical[historical.length - 1];
-  const combinedForecastData = [lastHistoricalPoint, ...forecast];
+  const firstForecastPoint = forecast[0];
+  
+  // Create a connecting point if there's a gap between historical and forecast data
+  const connectionPoint = {
+    Date: firstForecastPoint ? new Date(firstForecastPoint.Date) : new Date(lastHistoricalPoint.Date),
+    Close: lastHistoricalPoint.Close,
+    type: 'connection'
+  };
+  
+  // Combine all data for the chart
+  const combinedData = [
+    ...historical.map(item => ({ ...item, Date: new Date(item.Date) })),
+    connectionPoint,
+    ...forecast.map(item => ({ 
+      ...item, 
+      Date: new Date(item.Date),
+      Close: item.Forecast // Add Close for consistent tooltip access
+    }))
+  ].sort((a, b) => a.Date - b.Date);
 
   return (
     <ResponsiveContainer width="100%" height="100%" minHeight={250}>
       <ComposedChart
-        data={historical}
+        data={combinedData}
         margin={{
           top: 15,
           right: 25,
@@ -59,10 +101,13 @@ const PriceChart = ({ historical, forecast }) => {
           dataKey="Date" 
           tick={{ fill: '#E6EDF3', fontSize: 12 }} 
           stroke="#30363D" 
-          tickFormatter={(date) => new Date(date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+          tickFormatter={(date) => formatDate(date)}
           interval="preserveStartEnd"
           height={35}
           padding={{ left: 10, right: 10 }}
+          type="number"
+          domain={['dataMin', 'dataMax']}
+          tickCount={6}
         />
         <YAxis 
           tick={{ fill: '#E6EDF3', fontSize: 12 }} 
@@ -80,20 +125,31 @@ const PriceChart = ({ historical, forecast }) => {
             borderRadius: '4px',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)'
           }}
-          labelFormatter={(date) => new Date(date).toLocaleDateString()}
-          formatter={(value) => [`$${parseFloat(value).toFixed(2)}`, 'Historical Price']}
+          labelFormatter={(date) => formatDate(date)}
+          formatter={(value, name, props) => {
+            const price = props.dataKey === 'Forecast' ? value : props.payload.Close || value;
+            const label = props.dataKey === 'Forecast' ? 'Forecast Price' : 'Historical Price';
+            return [`$${parseFloat(price).toFixed(2)}`, label];
+          }}
           cursor={{ stroke: '#58A6FF', strokeWidth: 1, strokeDasharray: '3 3' }}
         />
         <Legend 
           wrapperStyle={{ 
             fontSize: 12, 
             padding: '10px 0',
-            color: '#E6EDF3'
+            color: '#E6EDF3',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px'
           }} 
           height={30}
           iconSize={10}
           iconType="circle"
+          layout="horizontal"
+          verticalAlign="top"
+          align="center"
         />
+        {/* Historical Price Line */}
         <Line 
           type="monotone" 
           dataKey="Close" 
@@ -103,33 +159,25 @@ const PriceChart = ({ historical, forecast }) => {
           name="Historical Price"
           isAnimationActive={true}
           animationDuration={1000}
+          connectNulls={true}
         />
         
-        {/* Forecast data with confidence intervals */}
+        {/* Confidence Interval Area */}
         <Area
           type="monotone"
-          data={combinedForecastData}
-          dataKey="Lower_CI"
+          dataKey="Upper_CI"
+          data={combinedData}
           fill="rgba(63, 185, 80, 0.15)"
           stroke="transparent"
           name="Confidence Interval"
           isAnimationActive={true}
           animationDuration={1500}
+          connectNulls={true}
         />
-        <Area
-          type="monotone"
-          data={combinedForecastData}
-          dataKey="Upper_CI"
-          fill="rgba(63, 185, 80, 0.15)"
-          stroke="transparent"
-          name=""
-          isAnimationActive={true}
-          animationDuration={1500}
-          legendType="none"
-        />
+        
+        {/* Forecast Price Line */}
         <Line 
           type="monotone" 
-          data={combinedForecastData}
           dataKey="Forecast" 
           stroke="#3FB950" 
           strokeWidth={2.5} 
@@ -138,6 +186,7 @@ const PriceChart = ({ historical, forecast }) => {
           isAnimationActive={true}
           animationDuration={1500}
           strokeDasharray="5 5"
+          connectNulls={true}
         />
       </ComposedChart>
     </ResponsiveContainer>
