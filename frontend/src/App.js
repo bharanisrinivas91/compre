@@ -15,9 +15,6 @@ const commodityMap = {
   "Crude Oil": { icon: FaGasPump, name: "Crude Oil" },
   "Gold": { icon: FaCoins, name: "Gold" },
   "Natural Gas": { icon: FaGasPump, name: "Natural Gas" },
-  "Soybeans": { icon: FaLeaf, name: "Soybeans" },
-  "Corn": { icon: FaSeedling, name: "Corn" },
-  "Wheat": { icon: FaSeedling, name: "Wheat" },
   "Steel": { icon: FaIndustry, name: "Steel" },
   "Aluminum": { icon: FaCubes, name: "Aluminum" },
   "Silver": { icon: FaCoins, name: "Silver" }
