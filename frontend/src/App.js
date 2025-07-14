@@ -2,9 +2,9 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { ScrollMenu, VisibilityContext } from 'react-horizontal-scrolling-menu';
 import 'react-horizontal-scrolling-menu/dist/styles.css';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+
 import { 
-  FaCubes, FaFlask, FaNewspaper, FaChartLine, FaBrain, FaChevronLeft, FaChevronRight, FaChevronDown, FaChevronUp, 
+  FaCubes, FaFlask, FaNewspaper, FaChartLine, FaBrain, FaChevronLeft, FaChevronRight, 
   FaGasPump, FaLeaf, FaSeedling, FaIndustry, FaCube, FaCoins 
 } from 'react-icons/fa';
 import './App.css';
@@ -48,8 +48,8 @@ function App() {
   return (
     <div className="App">
       <header className="header">
-        <h1><FaCubes /> Aetherium Metals</h1>
-        <p>AI-Powered Procurement Analysis for Industrial Commodities</p>
+        <h1><FaCubes /> ProcureIQ</h1>
+        <p>AI-Powered Procurement Intelligence for Industrial Commodities</p>
       </header>
 
       <CommoditySelector selected={selectedCommodity} onSelect={handleAnalyze} />
@@ -57,26 +57,53 @@ function App() {
       {loading && <LoadingSpinner />}
       {error && <p className="error-message">Error: {error}</p>}
       {report && (
-        <div className="report-container">
-          <div className="report-card recommendation-card">
+        <div className="quadrant-layout">
+          {/* Top Left Quadrant - Recommendation */}
+          <div className="quadrant recommendation-quadrant">
             <h2 className="card-title"><FaFlask /> Procurement Recommendation</h2>
-            <p className={`recommendation-text ${report.recommendation_summary.toLowerCase().includes('procure') ? 'recommendation-procure' : 'recommendation-wait'}`}>{report.recommendation_summary}</p>
+            <div className="quadrant-content">
+              <p className={`recommendation-text ${report.recommendation_summary.toLowerCase().includes('procure') ? 'recommendation-procure' : 'recommendation-wait'}`}>
+                <strong>{report.recommendation_summary.toLowerCase().includes('procure') ? 'PROCURE NOW' : 'WAIT'}</strong>
+                <br />
+                {report.recommendation_summary}
+              </p>
+            </div>
           </div>
 
-          <div className="report-card">
+          {/* Top Right Quadrant - Price Forecast */}
+          <div className="quadrant forecast-quadrant">
             <h2 className="card-title"><FaChartLine /> 60-Day Price Forecast</h2>
-            <PriceChart historical={report.historical_prices} forecast={report.forecasted_prices} />
+            <div className="quadrant-content chart-container">
+              <PriceChart historical={report.historical_prices} forecast={report.forecasted_prices} />
+            </div>
           </div>
 
-          <CollapsibleCard title="AI Insight Summary" icon={<FaBrain />}>
-            <p>{report.qualitative_research}</p>
-          </CollapsibleCard>
+          {/* Bottom Left Quadrant - AI Insight */}
+          <div className="quadrant insight-quadrant">
+            <h2 className="card-title"><FaBrain /> AI Insight Summary</h2>
+            <div className="quadrant-content scrollable">
+              {report.qualitative_research.split('\n\n').map((paragraph, index) => (
+                <p key={index} style={{ marginBottom: '1rem' }}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
 
-          <CollapsibleCard title="Recent News" icon={<FaNewspaper />}>
-            <ul className="news-list">
-              {report.recent_news.map((news, index) => <li key={index}>{news}</li>)}
-            </ul>
-          </CollapsibleCard>
+          {/* Bottom Right Quadrant - News */}
+          <div className="quadrant news-quadrant">
+            <h2 className="card-title"><FaNewspaper /> Recent News</h2>
+            <div className="quadrant-content scrollable">
+              <ul className="news-list">
+                {report.recent_news.map((news, index) => (
+                  <li key={index}>
+                    <div className="news-item">
+                      <span className="news-number">{index + 1}.</span>
+                      <span className="news-content">{news}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -90,21 +117,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const CollapsibleCard = ({ icon, title, children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="report-card">
-      <div className="collapsible-header" onClick={() => setIsOpen(!isOpen)}>
-        <h2 className="card-title">{icon} {title}</h2>
-        {isOpen ? <FaChevronUp /> : <FaChevronDown />}
-      </div>
-      <div className={`collapsible-content ${isOpen ? 'open' : ''}`}>
-        {children}
-      </div>
-    </div>
-  );
-};
 
 const CommoditySelector = ({ selected, onSelect }) => (
   <div className="commodity-selector-container">

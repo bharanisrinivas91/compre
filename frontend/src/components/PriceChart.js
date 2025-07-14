@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -8,7 +7,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  AreaChart,
   Area,
   ComposedChart,
 } from 'recharts';
@@ -46,83 +44,100 @@ const PriceChart = ({ historical, forecast }) => {
   const combinedForecastData = [lastHistoricalPoint, ...forecast];
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={250}>
       <ComposedChart
+        data={historical}
         margin={{
-          top: 20,
-          right: 30,
-          left: 20,
+          top: 15,
+          right: 25,
+          left: 5,
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" stroke="#30363D" />
+        <CartesianGrid strokeDasharray="3 3" stroke="#30363D" opacity={0.3} />
         <XAxis 
           dataKey="Date" 
-          tick={{ fill: '#8B949E' }} 
+          tick={{ fill: '#E6EDF3', fontSize: 12 }} 
           stroke="#30363D" 
-          // Allow recharts to skip labels to prevent overlap
+          tickFormatter={(date) => new Date(date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
           interval="preserveStartEnd"
+          height={35}
+          padding={{ left: 10, right: 10 }}
         />
         <YAxis 
-          tick={{ fill: '#8B949E' }} 
-          stroke="#30363D" 
-          domain={['auto', 'auto']} 
-          // Format axis ticks to be more readable
-          tickFormatter={(value) => `$${value.toLocaleString()}`}
+          tick={{ fill: '#E6EDF3', fontSize: 12 }} 
+          width={45}
+          tickFormatter={(value) => `$${Math.round(value)}`}
+          domain={['auto', 'auto']}
+          padding={{ top: 10, bottom: 10 }}
         />
-        <Tooltip
+        <Tooltip 
           contentStyle={{ 
-            backgroundColor: '#161B22',
-            borderColor: '#30363D',
-            color: '#E6EDF3'
+            backgroundColor: '#161B22', 
+            border: '1px solid #30363D',
+            padding: '10px',
+            fontSize: '13px',
+            borderRadius: '4px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.2)'
           }}
-          formatter={(value, name) => [value.toFixed(2), name]}
+          labelFormatter={(date) => new Date(date).toLocaleDateString()}
+          formatter={(value) => [`$${parseFloat(value).toFixed(2)}`, 'Historical Price']}
+          cursor={{ stroke: '#58A6FF', strokeWidth: 1, strokeDasharray: '3 3' }}
         />
-        <Legend wrapperStyle={{ color: '#E6EDF3' }} />
-
-        {/* Historical Data Line */}
+        <Legend 
+          wrapperStyle={{ 
+            fontSize: 12, 
+            padding: '10px 0',
+            color: '#E6EDF3'
+          }} 
+          height={30}
+          iconSize={10}
+          iconType="circle"
+        />
         <Line 
           type="monotone" 
-          data={historical} 
           dataKey="Close" 
           stroke="#58A6FF" 
-          strokeWidth={2} 
+          strokeWidth={2.5} 
           dot={false} 
           name="Historical Price"
+          isAnimationActive={true}
+          animationDuration={1000}
         />
-
-        {/* Forecast Data Line */}
-        <Line 
-          type="monotone" 
-          data={combinedForecastData}
-          dataKey="Forecast"
-          stroke="#3FB950"
-          strokeWidth={2}
-          strokeDasharray="5 5"
-          dot={false}
-          name="Forecasted Price"
-        />
-
-        {/* Confidence Interval Area */}
-        <Area
-          type="monotone"
-          data={combinedForecastData}
-          dataKey="Upper_CI"
-          fill="#3FB950"
-          stroke={false}
-          fillOpacity={0.1}
-          name="Upper Confidence"
-          isAnimationActive={false}
-        />
+        
+        {/* Forecast data with confidence intervals */}
         <Area
           type="monotone"
           data={combinedForecastData}
           dataKey="Lower_CI"
-          fill="#3FB950"
-          stroke={false}
-          fillOpacity={0.1}
-          name="Lower Confidence"
-          isAnimationActive={false}
+          fill="rgba(63, 185, 80, 0.15)"
+          stroke="transparent"
+          name="Confidence Interval"
+          isAnimationActive={true}
+          animationDuration={1500}
+        />
+        <Area
+          type="monotone"
+          data={combinedForecastData}
+          dataKey="Upper_CI"
+          fill="rgba(63, 185, 80, 0.15)"
+          stroke="transparent"
+          name=""
+          isAnimationActive={true}
+          animationDuration={1500}
+          legendType="none"
+        />
+        <Line 
+          type="monotone" 
+          data={combinedForecastData}
+          dataKey="Forecast" 
+          stroke="#3FB950" 
+          strokeWidth={2.5} 
+          dot={false} 
+          name="Forecast Price"
+          isAnimationActive={true}
+          animationDuration={1500}
+          strokeDasharray="5 5"
         />
       </ComposedChart>
     </ResponsiveContainer>
