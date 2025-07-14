@@ -178,7 +178,7 @@ function App() {
               {fullscreenQuadrant === 'recommendation' ? <FaCompress /> : <FaExpand />}
             </button>
             <h2 className="card-title"><FaFlask /> Procurement Recommendation</h2>
-            <div className="quadrant-content">
+            <div className="quadrant-content scrollable">
               <p className={`recommendation-text ${report.recommendation_summary.toLowerCase().includes('procure') ? 'recommendation-procure' : 'recommendation-wait'}`}>
                 <strong>{report.recommendation_summary.toLowerCase().includes('procure') ? 'PROCURE NOW' : 'WAIT'}</strong>
                 <br />
@@ -214,7 +214,18 @@ function App() {
             <h2 className="card-title"><FaBrain /> AI Insight Summary</h2>
             <div className="quadrant-content scrollable">
               {report.qualitative_research.split('\n\n').map((paragraph, index) => (
-                <p key={index} style={{ marginBottom: '1rem' }}>{paragraph}</p>
+                <div key={index} className="insight-paragraph">
+                  {paragraph.includes('bullish') ? (
+                    <p dangerouslySetInnerHTML={{
+                      __html: paragraph
+                        .replace(/bullish/gi, '<span class="highlight-bullish">bullish</span>')
+                        .replace(/bearish/gi, '<span class="highlight-bearish">bearish</span>')
+                        .replace(/neutral/gi, '<span class="highlight-neutral">neutral</span>')
+                    }} />
+                  ) : (
+                    <p>{paragraph}</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -257,23 +268,98 @@ const LoadingSpinner = () => (
 );
 
 
-const CommoditySelector = ({ selected, onSelect }) => (
-  <div className="commodity-selector-container">
-    <ScrollMenu LeftArrow={LeftArrow} RightArrow={RightArrow}>
-      {commodities.map((name) => (
-        <div
-          className={`commodity-card ${name === selected ? 'selected' : ''}`}
-          key={name}
-          onClick={() => onSelect(name)}
-          tabIndex={0}
+const CommoditySelector = ({ selected, onSelect }) => {
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const commodityListRef = React.useRef(null);
+  const [maxScroll, setMaxScroll] = useState(0);
+  
+  React.useEffect(() => {
+    if (commodityListRef.current) {
+      setMaxScroll(commodityListRef.current.scrollWidth - commodityListRef.current.clientWidth);
+    }
+  }, []);
+  
+  const scrollLeft = () => {
+    if (commodityListRef.current) {
+      const newPosition = Math.max(0, scrollPosition - 200);
+      commodityListRef.current.scrollTo({ left: newPosition, behavior: 'smooth' });
+      setScrollPosition(newPosition);
+    }
+  };
+  
+  const scrollRight = () => {
+    if (commodityListRef.current) {
+      const newPosition = Math.min(maxScroll, scrollPosition + 200);
+      commodityListRef.current.scrollTo({ left: newPosition, behavior: 'smooth' });
+      setScrollPosition(newPosition);
+    }
+  };
+  
+  const handleScroll = () => {
+    if (commodityListRef.current) {
+      setScrollPosition(commodityListRef.current.scrollLeft);
+    }
+  };
+  
+  React.useEffect(() => {
+    const listElement = commodityListRef.current;
+    if (listElement) {
+      listElement.addEventListener('scroll', handleScroll);
+      return () => listElement.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+  
+  return (
+    <div className="commodity-selector-container">
+      <div className="commodity-selector">
+        <button 
+          className={`arrow ${scrollPosition <= 0 ? 'disabled' : ''}`}
+          onClick={scrollLeft}
+          disabled={scrollPosition <= 0}
+          aria-label="Scroll left"
         >
-          {React.createElement(commodityMap[name].icon, { className: 'commodity-icon' })}
-          <span>{commodityMap[name].name}</span>
+          <FaChevronLeft />
+        </button>
+        
+        <div 
+          className="commodity-list" 
+          ref={commodityListRef}
+          style={{ 
+            display: 'flex', 
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            padding: '1rem 0'
+          }}
+          onScroll={handleScroll}
+        >
+          {commodities.map((name) => (
+            <button
+              key={name}
+              className={`commodity-button ${name === selected ? 'active' : ''}`}
+              onClick={() => onSelect(name)}
+              aria-label={`Select ${name}`}
+            >
+              <div className="commodity-icon-wrapper">
+                {React.createElement(commodityMap[name].icon, { className: 'commodity-icon' })}
+              </div>
+              <span className="commodity-name">{commodityMap[name].name}</span>
+            </button>
+          ))}
         </div>
-      ))}
-    </ScrollMenu>
-  </div>
-);
+        
+        <button 
+          className={`arrow ${scrollPosition >= maxScroll ? 'disabled' : ''}`}
+          onClick={scrollRight}
+          disabled={scrollPosition >= maxScroll}
+          aria-label="Scroll right"
+        >
+          <FaChevronRight />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 function LeftArrow() {
   const { isFirstItemVisible, scrollPrev } = useContext(VisibilityContext);
