@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import os
 from src.workflow import app_graph
 from src.config import COMMODITY_TICKERS
 
@@ -43,6 +45,24 @@ async def get_procurement_analysis(request: ProcurementRequest):
     final_state = app_graph.invoke(inputs)
     # The 'report' key now holds our structured JSON object
     return final_state.get('report', {'error': 'Could not generate report.'})
+
+@app.get("/download/{filename}")
+async def download_file(filename: str):
+    """
+    Serves Excel files for download.
+    
+    - **filename**: The name of the Excel file to download.
+    """
+    file_path = os.path.join(os.getcwd(), filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"File {filename} not found")
+        
+    return FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 @app.get("/")
 async def root():

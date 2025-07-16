@@ -7,7 +7,8 @@ from src.agents import (
     research_commodity,
     make_procurement_decision,
     fetch_recent_news,
-    forecast_prices
+    forecast_prices,
+    export_report_to_excel
 )
 
 # Define the state for our graph
@@ -95,6 +96,9 @@ def final_output_node(state: AgentState) -> AgentState:
                 'Lower_CI': last_price * 0.9,
                 'Upper_CI': last_price * 1.1
             } for d in dates]
+            
+            # Create a DataFrame for the Excel export
+            forecast_data = pd.DataFrame(forecast_data_json)
         else:
             # Use the forecast data as is
             print(f"Forecast data columns: {forecast_data.columns.tolist()}")
@@ -105,6 +109,8 @@ def final_output_node(state: AgentState) -> AgentState:
         # Create empty placeholders if anything fails
         historical_data_json = []
         forecast_data_json = []
+        historical_data = pd.DataFrame()
+        forecast_data = pd.DataFrame()
 
     # 3. Clean up news headlines
     raw_headlines = state['news_headlines'].strip().split('\n')
@@ -119,6 +125,23 @@ def final_output_node(state: AgentState) -> AgentState:
         "historical_prices": historical_data_json,
         "forecasted_prices": forecast_data_json
     }
+    
+    # 5. Export the report to Excel
+    try:
+        excel_path = export_report_to_excel(
+            state['commodity'],
+            historical_data,
+            forecast_data,
+            state['decision'],
+            state['research_summary'],
+            state['news_headlines']
+        )
+        print(f"Excel report successfully exported to: {excel_path}")
+        report["excel_report_path"] = excel_path
+    except Exception as e:
+        print(f"Error exporting Excel report: {e}")
+        report["excel_report_path"] = f"Error: {str(e)}"
+    
     return {"report": report}
 
 # Build the graph
